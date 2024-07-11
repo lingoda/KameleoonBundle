@@ -10,21 +10,21 @@ use Kameleoon\KameleoonClientConfig;
 
 class KameleoonConfig
 {
-    private bool $cookieSecure = false;
-    private bool $cookieHttpOnly = false;
-    private string $cookieSameSite = "Lax";
     private string $configFileName = 'kameleoon.json';
 
+    /**
+     * @param array<string,mixed> $kameleoonCookieOptions
+     */
     public function __construct(
         private readonly KameleoonEnvironmentMapper $kameleoonEnvironmentMapper,
-        private readonly string $kameleoonClientId,
-        private readonly string $kameleoonClientSecret,
-        private readonly string $kameleoonSiteCode,
-        private readonly bool $kameleoonDebugMode,
-        private readonly string $kameleoonWorkDir,
-        private readonly int $kameleoonRefreshInterval,
-        private readonly int $kameleoonDefaultTimeout,
-        private readonly string $cookieDomain,
+        private readonly string                     $kameleoonClientId,
+        private readonly string                     $kameleoonClientSecret,
+        private readonly string                     $kameleoonSiteCode,
+        private readonly bool                       $kameleoonDebugMode,
+        private readonly string                     $kameleoonWorkDir,
+        private readonly int                        $kameleoonRefreshInterval,
+        private readonly int                        $kameleoonDefaultTimeout,
+        private readonly array                      $kameleoonCookieOptions,
     ) {
     }
 
@@ -45,10 +45,10 @@ class KameleoonConfig
     private function getCookieOptions(): CookieOptions
     {
         return KameleoonClientConfig::createCookieOptions(
-            $this->cookieDomain,
-            $this->cookieSecure,
-            $this->cookieHttpOnly,
-            $this->cookieSameSite,
+            $this->kameleoonCookieOptions['domain'],
+            $this->kameleoonCookieOptions['secure'],
+            $this->kameleoonCookieOptions['http_only'],
+            $this->kameleoonCookieOptions['same_site'],
         );
     }
 
@@ -67,12 +67,7 @@ class KameleoonConfig
             'client_secret' => $this->kameleoonClientSecret,
             'refresh_interval_minute' => $this->kameleoonRefreshInterval,
             'default_timeout_millisecond' => $this->kameleoonDefaultTimeout,
-            'cookie_options' => [
-                'domain' => $this->cookieDomain,
-                'secure' => $this->cookieSecure,
-                'http_only' => $this->cookieHttpOnly,
-                'samesite' => $this->cookieSameSite,
-            ],
+            'cookie_options' => $this->kameleoonCookieOptions,
             'debug_mode' => $this->kameleoonDebugMode,
             'environment' => $this->kameleoonEnvironmentMapper->getEnvironment(),
         ], JSON_THROW_ON_ERROR);

@@ -1,0 +1,24 @@
+services:
+#  _defaults:
+#    autowire: true
+#    autoconfigure: true
+#    bind:
+#      $kameleoonClientId: '%lingoda_kameleoon.client_id%'
+#      $kameleoonClientSecret: '%lingoda_kameleoon.secret%'
+#      $kameleoonSiteCode: '%lingoda_kameleoon.site_code%'
+#      $kameleoonDebugMode: '%lingoda_kameleoon.debug_mode%'
+#      $kameleoonWorkDir: '%lingoda_kameleoon.work_dir%'
+#      $kameleoonRefreshInterval: '%lingoda_kameleoon.refresh_interval%'
+#      $kameleoonDefaultTimeout: '%lingoda_kameleoon.default_timeout%'
+
+  Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig:
+    arguments:
+      - '@Lingoda\KameleoonBundle\Kameleoon\KameleoonEnvironmentMapper'
+      - '%lingoda_kameleoon.client_id%'
+      - '%lingoda_kameleoon.secret%'
+      - '%lingoda_kameleoon.site_code%'
+      - '%lingoda_kameleoon.debug_mode%'
+      - '%lingoda_kameleoon.work_dir%'
+      - '%lingoda_kameleoon.refresh_interval%'
+      - '%lingoda_kameleoon.default_timeout%'
+      - '%lingoda_kameleoon.cookie_options%'
