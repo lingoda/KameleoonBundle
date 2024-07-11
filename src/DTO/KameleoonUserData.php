@@ -6,11 +6,11 @@ namespace Lingoda\KameleoonBundle\DTO;
 
 use Lingoda\KameleoonBundle\Enum\KameleoonCustomDataEnum;
 
-class KameleoonUserData
+readonly class KameleoonUserData
 {
     public function __construct(
-        public readonly KameleoonCustomDataEnum $id,
-        public readonly string | int | float | bool $value,
+        public KameleoonCustomDataEnum $id,
+        public string | int | float | bool $value,
     ) {
     }
 }

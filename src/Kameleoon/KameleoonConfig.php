@@ -10,8 +10,6 @@ use Kameleoon\KameleoonClientConfig;
 
 class KameleoonConfig
 {
-    private string $configFileName = 'kameleoon.json';
-
     /**
      * @param array<string,mixed> $kameleoonCookieOptions
      */
@@ -42,6 +40,11 @@ class KameleoonConfig
         );
     }
 
+    public function getKameleoonSiteCode(): string
+    {
+        return $this->kameleoonSiteCode;
+    }
+
     private function getCookieOptions(): CookieOptions
     {
         return KameleoonClientConfig::createCookieOptions(
@@ -50,42 +53,5 @@ class KameleoonConfig
             $this->kameleoonCookieOptions['http_only'],
             $this->kameleoonCookieOptions['same_site'],
         );
-    }
-
-    public function getKameleoonSiteCode(): string
-    {
-        return $this->kameleoonSiteCode;
-    }
-
-    /**
-     * @throws JsonException
-     */
-    private function getJsonConfig(): string
-    {
-        return json_encode([
-            'client_id' => $this->kameleoonClientId,
-            'client_secret' => $this->kameleoonClientSecret,
-            'refresh_interval_minute' => $this->kameleoonRefreshInterval,
-            'default_timeout_millisecond' => $this->kameleoonDefaultTimeout,
-            'cookie_options' => $this->kameleoonCookieOptions,
-            'debug_mode' => $this->kameleoonDebugMode,
-            'environment' => $this->kameleoonEnvironmentMapper->getEnvironment(),
-        ], JSON_THROW_ON_ERROR);
-    }
-
-    private function getConfigFilePath(): string
-    {
-        return $this->kameleoonWorkDir . '/' . $this->configFileName;
-    }
-
-    public function writeConfigFile(): string
-    {
-        // make sure the directory exists
-        if (!is_dir($this->kameleoonWorkDir)) {
-            mkdir($this->kameleoonWorkDir, 0777, true);
-        }
-        $path = $this->getConfigFilePath();
-        file_put_contents($path, $this->getJsonConfig());
-        return $path;
     }
 }
