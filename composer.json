@@ -18,5 +18,10 @@
     "require-dev": {
         "phpstan/phpstan": "^1.11",
         "phpspec/phpspec": "^7.5"
+    },
+    "config": {
+        "platform": {
+            "php": "8.1"
+        }
     }
 }
