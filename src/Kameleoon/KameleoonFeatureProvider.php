@@ -14,9 +14,9 @@ class KameleoonFeatureProvider
 {
     private KameleoonClientInterface $client;
 
-    public function __construct(KameleoonClient $kameleoonClient)
+    public function __construct(KameleoonClientInterface $kameleoonClient)
     {
-        $this->client = $kameleoonClient->getClient();
+        $this->client = $kameleoonClient;
     }
 
     public function isFeatureActive(UserInterface $user, string $featureKey): bool

@@ -4,3 +4,13 @@ services:
 
   Lingoda\KameleoonBundle\Kameleoon\:
     resource: '../src/Kameleoon/*'
+
+  Kameleoon\KameleoonClientFactory:
+    class: Kameleoon\KameleoonClientFactory
+
+  Kameleoon\KameleoonClient:
+    class: Kameleoon\KameleoonClient
+    factory: [ '@Kameleoon\KameleoonClientFactory', createWithConfig ]
+    arguments:
+      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getKameleoonSiteCode()'
+      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getConfig()'
