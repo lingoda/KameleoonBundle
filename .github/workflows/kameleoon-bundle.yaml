@@ -6,7 +6,7 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
-  tests:
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - name: cancel
@@ -15,6 +15,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@2.19.0
         with:
@@ -25,15 +28,9 @@ jobs:
         with:
           composer-options: "--prefer-dist --classmap-authoritative"
 
-      - name: phpstan-cache
-        uses: actions/cache@v3.0.3
-        with:
-          key: phpstan-${{ github.ref }}-${{ github.sha }}
-          path: .phpstan-cache
-          restore-keys: |
-            phpstan-${{ github.ref }}-
-            phpstan-
-
+  tests:
+    runs-on: ubuntu-latest
+    steps:
       - name: phpstan
         run: vendor/bin/phpstan analyze -c ./phpstan.neon
 
