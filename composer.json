@@ -13,12 +13,21 @@
         "symfony/framework-bundle": "^5.4 || ^6.3 || ^7.0",
         "symfony/http-client": "^5.4 || ^6.3 || ^7.0",
         "symfony/yaml": "^5.4 || ^6.3 || ^7.0",
-        "kameleoon/kameleoon-client-php": "^4.3"
+        "kameleoon/kameleoon-client-php": "^4.3",
+        "lingoda/cron-bundle": "^2.0",
+        "symfony/process": "^6.4",
+        "psr/log": "^3.0"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.11",
         "phpspec/phpspec": "^7.5"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/lingoda/cron-bundle.git"
+        }
+    ],
     "config": {
         "platform": {
             "php": "8.1"
