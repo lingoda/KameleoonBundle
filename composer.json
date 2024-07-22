@@ -1,0 +1,27 @@
+{
+    "name": "lingoda/kameleoon-bundle",
+    "description": "Kameleoon API integration for Symfony apps",
+    "type": "symfony-bundle",
+    "autoload": {
+        "psr-4": {
+            "Lingoda\\KameleoonBundle\\": "src/"
+        }
+    },
+    "license": "proprietary",
+    "require": {
+        "php": "^8.1",
+        "symfony/framework-bundle": "^5.4 || ^6.3 || ^7.0",
+        "symfony/http-client": "^5.4 || ^6.3 || ^7.0",
+        "symfony/yaml": "^5.4 || ^6.3 || ^7.0",
+        "kameleoon/kameleoon-client-php": "^4.3"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.11",
+        "phpspec/phpspec": "^7.5"
+    },
+    "config": {
+        "platform": {
+            "php": "8.1"
+        }
+    }
+}

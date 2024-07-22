@@ -1,0 +1,6 @@
+runner.maintainers.errors.level: 8191 # E_ALL & ~E_USER_DEPRECATED & ~E_DEPRECATED
+code_generation: false
+suites:
+  lingoda_kameleoon:
+    namespace: Lingoda\KameleoonBundle
+    psr4_prefix: Lingoda\KameleoonBundle
