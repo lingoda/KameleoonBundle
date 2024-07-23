@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 
+use Carbon\CarbonImmutable;
 use Kameleoon\Data\CustomData;
 use Kameleoon\KameleoonClient;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
@@ -13,6 +14,8 @@ use Lingoda\KameleoonBundle\Kameleoon\KameleoonFeatureProvider;
 use Lingoda\KameleoonBundle\User\UserInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Webmozart\Assert\Assert;
 
 class KameleoonFeatureProviderSpec extends ObjectBehavior
@@ -20,12 +23,12 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
     private const USER_EMAIL = 'user_test1@example.com';
     private const VISITOR_CODE = 'test_visitor_code';
 
-    public function let(KameleoonClient $client, UserInterface $user)
+    public function let(KameleoonClient $client, UserInterface $user, CacheItemPoolInterface $cache)
     {
         $user->getEmail()->willReturn(self::USER_EMAIL);
         $client->getVisitorCode(self::USER_EMAIL)->willReturn(self::VISITOR_CODE);
 
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, $cache);
     }
 
     public function it_is_initializable()
@@ -33,21 +36,101 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
         $this->shouldHaveType(KameleoonFeatureProvider::class);
     }
 
-    public function it_checks_if_feature_is_active(KameleoonClient $client, UserInterface $user)
-    {
+    public function it_checks_if_feature_is_active(
+        KameleoonClient $client,
+        UserInterface $user,
+        CacheItemPoolInterface $cache,
+        CacheItemInterface $cacheItem,
+    ) {
         $featureKey = 'my_awesome_test_feature1';
+
+        $cache->getItem('396fb151b98052222fcb6823f237110b_feature_my_awesome_test_feature1')
+            ->willReturn($cacheItem)
+            ->shouldBeCalledOnce();
+        $cacheItem->isHit()->willReturn(false)->shouldBeCalledOnce();
+        $cacheItem->set(true)->willReturn($cacheItem)->shouldBeCalledOnce();
+        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->willReturn($cacheItem)->shouldBeCalledOnce();
+        $cache->save($cacheItem)->shouldBeCalledOnce();
+        $cacheItem->get()->willReturn(true)->shouldBeCalledOnce();
+
         $client->isFeatureActive(self::VISITOR_CODE, $featureKey)->willReturn(true);
 
         Assert::true($this->isFeatureActive($user, $featureKey)->getWrappedObject());
     }
 
-    public function it_returns_active_feature_list(KameleoonClient $client, UserInterface $user)
-    {
+    public function it_checks_if_feature_is_active_from_cache(
+        KameleoonClient $client,
+        UserInterface $user,
+        CacheItemPoolInterface $cache,
+        CacheItemInterface $cacheItem,
+    ) {
+        $featureKey = 'my_awesome_test_feature1';
+
+        $cache->getItem('396fb151b98052222fcb6823f237110b_feature_my_awesome_test_feature1')
+            ->willReturn($cacheItem)
+            ->shouldBeCalledOnce();
+        $cacheItem->isHit()->willReturn(true)->shouldBeCalledOnce();
+        $cacheItem->set(true)->shouldNotBeCalled();
+        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->shouldNotBeCalled();
+        $cache->save($cacheItem)->shouldNotBeCalled();
+
+        $cacheItem->get()->willReturn(true)->shouldBeCalledOnce();
+
+        $client->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldNotBeCalled();
+
+        Assert::true($this->isFeatureActive($user, $featureKey)->getWrappedObject());
+    }
+
+    public function it_returns_active_feature_list(
+        KameleoonClient $client,
+        UserInterface $user,
+        CacheItemPoolInterface $cache,
+        CacheItemInterface $cacheItem,
+    ) {
         $featureList = [
             'my_awesome_test_feature1',
             'my_awesome_test_feature2',
         ];
+
+        $cache->getItem('396fb151b98052222fcb6823f237110b_active_features')
+            ->willReturn($cacheItem)
+            ->shouldBeCalledOnce();
+        $cacheItem->isHit()->willReturn(false)->shouldBeCalledOnce();
+        $cacheItem->set($featureList)->willReturn($cacheItem)->shouldBeCalledOnce();
+        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->willReturn($cacheItem)->shouldBeCalledOnce();
+        $cache->save($cacheItem)->shouldBeCalledOnce();
+        $cacheItem->get()->willReturn($featureList)->shouldBeCalledOnce();
+
         $client->getActiveFeatures(self::VISITOR_CODE)->willReturn($featureList);
+
+        Assert::eq(
+            $featureList,
+            $this->getActiveFeatureListForVisitor($user)->getWrappedObject()
+        );
+    }
+
+    public function it_returns_active_feature_list_from_cache(
+        KameleoonClient $client,
+        UserInterface $user,
+        CacheItemPoolInterface $cache,
+        CacheItemInterface $cacheItem,
+    ) {
+        $featureList = [
+            'my_awesome_test_feature1',
+            'my_awesome_test_feature2',
+        ];
+
+        $cache->getItem('396fb151b98052222fcb6823f237110b_active_features')
+            ->willReturn($cacheItem)
+            ->shouldBeCalledOnce();
+        $cacheItem->isHit()->willReturn(true)->shouldBeCalledOnce();
+        $cacheItem->set($featureList)->shouldNotBeCalled();
+        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->shouldNotBeCalled();
+        $cache->save($cacheItem)->shouldNotBeCalled();
+
+        $cacheItem->get()->willReturn($featureList)->shouldBeCalledOnce();
+
+        $client->getActiveFeatures(self::VISITOR_CODE)->shouldNotBeCalled();
 
         Assert::eq(
             $featureList,
