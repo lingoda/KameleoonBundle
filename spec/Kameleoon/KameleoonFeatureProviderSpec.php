@@ -7,6 +7,7 @@ namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 use Carbon\CarbonImmutable;
 use Kameleoon\Data\CustomData;
 use Kameleoon\KameleoonClient;
+use Kameleoon\Types\Variation;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
 use Lingoda\KameleoonBundle\Enum\KameleoonCustomDataEnum;
@@ -88,23 +89,23 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
         CacheItemInterface $cacheItem,
     ) {
         $featureList = [
-            'my_awesome_test_feature1',
-            'my_awesome_test_feature2',
+            'my_awesome_test_feature1' => new Variation('on', null, null, []),
+            'my_awesome_test_feature2' => new Variation('on', null, null, []),
         ];
 
         $cache->getItem('396fb151b98052222fcb6823f237110b_active_features')
             ->willReturn($cacheItem)
             ->shouldBeCalledOnce();
         $cacheItem->isHit()->willReturn(false)->shouldBeCalledOnce();
-        $cacheItem->set($featureList)->willReturn($cacheItem)->shouldBeCalledOnce();
+        $cacheItem->set(array_keys($featureList))->willReturn($cacheItem)->shouldBeCalledOnce();
         $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->willReturn($cacheItem)->shouldBeCalledOnce();
         $cache->save($cacheItem)->shouldBeCalledOnce();
-        $cacheItem->get()->willReturn($featureList)->shouldBeCalledOnce();
+        $cacheItem->get()->willReturn(array_keys($featureList))->shouldBeCalledOnce();
 
         $client->getActiveFeatures(self::VISITOR_CODE)->willReturn($featureList);
 
         Assert::eq(
-            $featureList,
+            array_keys($featureList),
             $this->getActiveFeatureListForVisitor($user)->getWrappedObject()
         );
     }

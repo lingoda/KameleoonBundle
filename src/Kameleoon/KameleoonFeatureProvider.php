@@ -49,7 +49,7 @@ class KameleoonFeatureProvider
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
             $cacheItem->set(
-                $this->client->getActiveFeatures($this->getVisitorCode($user))
+                array_keys($this->client->getActiveFeatures($this->getVisitorCode($user)))
             );
             $cacheItem->expiresAt(CarbonImmutable::now()->addHours(self::CACHE_TTL_HOURS));
 
