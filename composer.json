@@ -13,7 +13,10 @@
         "symfony/framework-bundle": "^5.4 || ^6.3 || ^7.0",
         "symfony/http-client": "^5.4 || ^6.3 || ^7.0",
         "symfony/yaml": "^5.4 || ^6.3 || ^7.0",
-        "kameleoon/kameleoon-client-php": "^4.3"
+        "kameleoon/kameleoon-client-php": "^4.3",
+        "psr/cache": "^3.0",
+        "symfony/cache": "^6.4",
+        "nesbot/carbon": "^2.48"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.11",

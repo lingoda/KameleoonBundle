@@ -4,24 +4,39 @@ declare(strict_types=1);
 
 namespace Lingoda\KameleoonBundle\Kameleoon;
 
+use Carbon\CarbonImmutable;
 use Kameleoon\Data\CustomData;
 use Kameleoon\KameleoonClient as KameleoonClientInterface;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
 use Lingoda\KameleoonBundle\User\UserInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class KameleoonFeatureProvider
 {
-    private KameleoonClientInterface $client;
+    private const CACHE_TTL_HOURS = 12;
 
-    public function __construct(KameleoonClientInterface $kameleoonClient)
-    {
-        $this->client = $kameleoonClient;
+    public function __construct(
+        private readonly KameleoonClientInterface $client,
+        private readonly CacheItemPoolInterface $cache,
+    ) {
     }
 
     public function isFeatureActive(UserInterface $user, string $featureKey): bool
     {
-        return $this->client->isFeatureActive($this->getVisitorCode($user), $featureKey);
+        $visitorCode = $this->getVisitorCode($user);
+        $cacheKey = md5($visitorCode) . '_feature_' . $featureKey;
+        $cacheItem = $this->cache->getItem($cacheKey);
+        if (!$cacheItem->isHit()) {
+            $cacheItem->set(
+                $this->client->isFeatureActive($visitorCode, $featureKey)
+            );
+            $cacheItem->expiresAt(CarbonImmutable::now()->addHours(self::CACHE_TTL_HOURS));
+
+            $this->cache->save($cacheItem);
+        }
+
+        return $cacheItem->get();
     }
 
     /**
@@ -29,7 +44,19 @@ class KameleoonFeatureProvider
      */
     public function getActiveFeatureListForVisitor(UserInterface $user): array
     {
-        return $this->client->getActiveFeatures($this->getVisitorCode($user));
+        $visitorCode = $this->getVisitorCode($user);
+        $cacheKey = md5($visitorCode) . '_active_features';
+        $cacheItem = $this->cache->getItem($cacheKey);
+        if (!$cacheItem->isHit()) {
+            $cacheItem->set(
+                $this->client->getActiveFeatures($this->getVisitorCode($user))
+            );
+            $cacheItem->expiresAt(CarbonImmutable::now()->addHours(self::CACHE_TTL_HOURS));
+
+            $this->cache->save($cacheItem);
+        }
+
+        return $cacheItem->get();
     }
 
     public function getFeatureVariationKey(UserInterface $user, string $featureKey): string
