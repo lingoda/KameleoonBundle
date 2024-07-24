@@ -47,9 +47,6 @@ class KameleoonFeatureProvider
 
     public function addData(UserInterface $user, KameleoonUserData $data): void
     {
-        // @todo: remove before merge
-        $this->client->setLegalConsent($this->getVisitorCode($user), true);
-
         $this->client->addData($this->getVisitorCode($user), new CustomData($data->id->value, (string)$data->value));
         $this->client->flush($this->getVisitorCode($user));
     }
