@@ -7,7 +7,6 @@ request_files=$("ls" -rt $kameleoon_work_dir/requests-*.sh 2>error.txt)
 previous_minute=$(($("date" +"%s")/60-1))
 for request_file in $request_files
 do
-#  echo "Processing request file $request_file\n"
 	request_file_minute=$("echo" "$request_file" | "sed" "s/.*requests\-\(.*\)\.sh/\1/")
 	if [ $request_file_minute -lt $previous_minute ]
 	then
@@ -18,7 +17,6 @@ for request_file in $request_files
 do
 	if [ -f "${request_file}.lock" ]
 	then
-#	  echo "Sourcing file ${request_file}.lock\n"
 		"source" "${request_file}.lock";"rm" -f "${request_file}.lock"
 	fi
 done

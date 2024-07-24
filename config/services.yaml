@@ -14,8 +14,3 @@ services:
     arguments:
       - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getKameleoonSiteCode()'
       - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getConfig()'
-
-  Lingoda\KameleoonBundle\Cron\SendAsyncRequests:
-    arguments:
-      - '%kernel.project_dir%'
-      - '%lingoda_kameleoon.work_dir%'
