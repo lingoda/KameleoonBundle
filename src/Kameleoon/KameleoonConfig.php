@@ -14,16 +14,17 @@ class KameleoonConfig
      * @param array<string,mixed> $kameleoonCookieOptions
      */
     public function __construct(
-        private readonly KameleoonEnvironmentMapper $kameleoonEnvironmentMapper,
-        private readonly string                     $kameleoonClientId,
-        private readonly string                     $kameleoonClientSecret,
-        private readonly string                     $kameleoonSiteCode,
-        private readonly bool                       $kameleoonDebugMode,
-        private readonly string                     $kameleoonWorkDir,
-        private readonly int                        $kameleoonRefreshInterval,
-        private readonly int                        $kameleoonDefaultTimeout,
-        private readonly array                      $kameleoonCookieOptions,
-    ) {
+        private readonly string $environment,
+        private readonly string $kameleoonClientId,
+        private readonly string $kameleoonClientSecret,
+        private readonly string $kameleoonSiteCode,
+        private readonly bool   $kameleoonDebugMode,
+        private readonly string $kameleoonWorkDir,
+        private readonly int    $kameleoonRefreshInterval,
+        private readonly int    $kameleoonDefaultTimeout,
+        private readonly array  $kameleoonCookieOptions,
+    )
+    {
     }
 
     public function getConfig(): KameleoonClientConfig
@@ -36,7 +37,7 @@ class KameleoonConfig
             $this->kameleoonDefaultTimeout,
             $this->kameleoonDebugMode,
             $this->getCookieOptions(),
-            $this->kameleoonEnvironmentMapper->getEnvironment(),
+            $this->environment,
         );
     }
 

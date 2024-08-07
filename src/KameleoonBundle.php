@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Lingoda\KameleoonBundle;
 
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
-use Lingoda\KameleoonBundle\Kameleoon\KameleoonEnvironmentMapper;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -24,7 +23,7 @@ class KameleoonBundle extends AbstractBundle
                 ->scalarNode('client_secret')->isRequired()->end()
                 ->scalarNode('site_code')->isRequired()->end()
                 ->scalarNode('work_dir')->defaultValue('/tmp/app/cache/dev/kameleoon')->end()
-                ->scalarNode('environment')->defaultValue('%kernel.environment%')->end()
+                ->scalarNode('environment')->defaultValue('development')->end()
                 ->booleanNode('debug_mode')->defaultValue('%kernel.debug%')->end()
                 ->integerNode('refresh_interval_minute')->defaultValue(60)->end()
                 ->integerNode('default_timeout_millisecond')->defaultValue(10000)->end()
@@ -48,6 +47,7 @@ class KameleoonBundle extends AbstractBundle
 
         $container->services()
             ->get(KameleoonConfig::class)
+            ->arg(0, $config['environment'])
             ->arg(1, $config['client_id'])
             ->arg(2, $config['client_secret'])
             ->arg(3, $config['site_code'])
@@ -56,11 +56,6 @@ class KameleoonBundle extends AbstractBundle
             ->arg(6, $config['refresh_interval_minute'])
             ->arg(7, $config['default_timeout_millisecond'])
             ->arg(8, $config['cookie_options'])
-        ;
-
-        $container->services()
-            ->get(KameleoonEnvironmentMapper::class)
-            ->arg(0, $config['environment'])
         ;
     }
 }
