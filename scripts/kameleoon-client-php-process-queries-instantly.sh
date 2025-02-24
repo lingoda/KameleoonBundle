@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# this script takes all the tracking requests and sends them to Kameleoon instantly
 
 kameleoon_work_dir="$1"
 if [ -z "$kameleoon_work_dir" ]

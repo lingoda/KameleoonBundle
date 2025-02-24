@@ -1,4 +1,5 @@
 # script is a slightly modified version of vendor/kameleoon/kameleoon-client-php/job/kameleoon-client-php-process-queries.sh
+# this script takes all the tracking requests which are older than 1 minute and sends them to Kameleoon
 
 #kameleoon_work_dir=/app/linguando/var/kameleoon
 
