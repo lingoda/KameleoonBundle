@@ -68,7 +68,7 @@ class KameleoonFeatureProvider
             $this->addCustomDataSet($visitorCode, $customDataset);
         }
 
-        // should I add throwable ValueError from here?
+        // @TODO should I add throwable ValueError from here?
         return $this->client->getVariation($visitorCode, $featureKey);
     }
 
@@ -81,9 +81,6 @@ class KameleoonFeatureProvider
         $this->client->setLegalConsent($visitorCode, $consent);
     }
 
-    /**
-     * @param ?KameleoonUserDataSet $customDataset
-     */
     public function trackGoal(string $visitorCode, int $goalId, ?KameleoonUserDataSet $customDataset = null): void
     {
         if (null !== $customDataset) {
