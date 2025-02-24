@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Lingoda\KameleoonBundle\DTO;
 
-use Lingoda\KameleoonBundle\Enum\KameleoonCustomDataEnum;
-
 class KameleoonUserData
 {
+    /**
+     * @param int $index the index of the custom data, should be taken from Kameleoon dashboard
+     * @param string $value
+     */
     public function __construct(
-        public readonly KameleoonCustomDataEnum $id,
-        public readonly string | int | float | bool $value,
+        public readonly int $index,
+        public readonly string $value,
     ) {
     }
 }

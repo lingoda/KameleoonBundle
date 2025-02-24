@@ -1,8 +1,7 @@
 <?php
 
 declare(strict_types=1);
-
-namespace Lingoda\KameleoonBundle\Enum;
+namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 
 enum KameleoonCustomDataEnum: int
 {
@@ -17,3 +16,5 @@ enum KameleoonCustomDataEnum: int
     case IS_STUDENT = 9;
     case IS_TEACHER = 10;
 }
+
+// @TODO update this enum. Or we maybe could remove it? 
