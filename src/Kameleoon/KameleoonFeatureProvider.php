@@ -8,7 +8,9 @@ use Kameleoon\Data\CustomData;
 use Kameleoon\Data\PageView;
 use Kameleoon\Data\UserAgent;
 use Kameleoon\KameleoonClient as KameleoonClientInterface;
+use Kameleoon\KameleoonClientImpl;
 use Kameleoon\Types\Variation;
+use Lingoda\KameleoonBundle\DTO\KameleoonFeatureFlagData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
 use Lingoda\KameleoonBundle\Enum\KameleoonVariationKeyEnum;
@@ -21,7 +23,8 @@ class KameleoonFeatureProvider
 
     public function __construct(
         private readonly KameleoonClientInterface $client,
-        private readonly RequestStack $requestStack
+        private readonly RequestStack $requestStack,
+        private readonly KameleoonConfig $config,
     ) {
     }
 
@@ -30,7 +33,6 @@ class KameleoonFeatureProvider
      */
     public function getFeatureVariationValue(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): KameleoonVariationKeyEnum
     {
-        // @TODO should I throw ValueError here? or a custom error describing what to do on Kameleoon side?
         return KameleoonVariationKeyEnum::from($this->getVariation($visitorCode, $featureKey, $customDataset)->key);
     }
 
@@ -68,14 +70,12 @@ class KameleoonFeatureProvider
             $this->addCustomDataSet($visitorCode, $customDataset);
         }
 
-        // @TODO should I add throwable ValueError from here?
         return $this->client->getVariation($visitorCode, $featureKey);
     }
 
     /**
      * a function to manually set the legal consent for a visitor
      */
-
     public function setLegalConsent(string $visitorCode, bool $consent): void
     {
         $this->client->setLegalConsent($visitorCode, $consent);
@@ -97,6 +97,15 @@ class KameleoonFeatureProvider
     public function getFeatureKeys(): array
     {
         return $this->client->getFeatureList();
+    }
+
+    /**
+     * This functions parses loaded KameleoonData and takes experiments data
+     * @return KameleoonFeatureFlagData[]
+     */
+    public function getFeaturesData(): array
+    {
+        return $this->getKameleoonFeaturesConfig();
     }
 
 
@@ -151,5 +160,33 @@ class KameleoonFeatureProvider
             }
         }
         return false;
+    }
+
+    /**
+     * @return KameleoonFeatureFlagData[]
+     */
+    private function getKameleoonFeaturesConfig(): array
+    {
+        $config = $this->config->getConfig();
+        $siteCode = $this->config->getKameleoonSiteCode();
+        $workDir = $config->getKameleoonWorkDir();
+
+        $jsonFile = $workDir . KameleoonClientImpl::FILE_CONFIGURATION_NAME . $siteCode . ".json";
+
+        if (!file_exists($jsonFile)) {
+            throw new \RuntimeException("Kameleoon config file is not found: {$jsonFile}");
+        }
+
+        $jsonContent = file_get_contents($jsonFile);
+        $configData = json_decode($jsonContent, true);
+
+        $featureFlags = $configData['featureFlags'] ?? [];
+
+        return array_map(fn(array $item) =>
+            new KameleoonFeatureFlagData(
+                $item['id'],
+                $item['featureKey'],
+                $item['environmentEnabled'],
+            ), $featureFlags);
     }
 }

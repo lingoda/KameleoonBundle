@@ -7,9 +7,11 @@ namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 use Kameleoon\Data\CustomData;
 use Kameleoon\Data\UserAgent;
 use Kameleoon\KameleoonClient;
+use Kameleoon\KameleoonClientConfig;
 use Kameleoon\Types\Variation;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
+use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonFeatureProvider;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
@@ -23,7 +25,7 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
 {
     private const VISITOR_CODE = 'test_visitor_code';
 
-    public function let(KameleoonClient $client, RequestStack $requestStack, Request $request, Variation $variation)
+    public function let(KameleoonClient $client, RequestStack $requestStack, Request $request, Variation $variation, KameleoonConfig $config, KameleoonClientConfig $clientConfig)
     {
 
         $variation->isActive()->willReturn(true);
@@ -34,7 +36,11 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
         $headers = new HeaderBag(['User-Agent' => $userAgent]);
         $request->headers = $headers;
         $requestStack->getCurrentRequest()->willReturn($request);
-        $this->beConstructedWith($client, $requestStack);
+
+        $clientConfig->getKameleoonWorkDir()->willReturn('work_dir');
+        $config->getConfig()->willReturn($clientConfig);
+        $config->getKameleoonSiteCode()->willReturn('site_code');
+        $this->beConstructedWith($client, $requestStack, $config);
     }
 
     public function it_is_initializable()
