@@ -4,93 +4,207 @@ declare(strict_types=1);
 
 namespace Lingoda\KameleoonBundle\Kameleoon;
 
-use Carbon\CarbonImmutable;
 use Kameleoon\Data\CustomData;
+use Kameleoon\Data\PageView;
+use Kameleoon\Data\UserAgent;
 use Kameleoon\KameleoonClient as KameleoonClientInterface;
+use Kameleoon\KameleoonClientImpl;
+use Kameleoon\Types\Variation;
+use Lingoda\KameleoonBundle\DTO\KameleoonFeatureFlagData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
-use Lingoda\KameleoonBundle\User\UserInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use Lingoda\KameleoonBundle\Enum\KameleoonVariationKeyEnum;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class KameleoonFeatureProvider
 {
-    private const CACHE_TTL_HOURS = 12;
+    private const USER_AGENT_HEADER_NAME = 'User-Agent';
+    private const CONSENT_COOKIE_NAME = 'OptanonConsent';
 
     public function __construct(
         private readonly KameleoonClientInterface $client,
-        private readonly CacheItemPoolInterface $cache,
+        private readonly RequestStack $requestStack,
+        private readonly KameleoonConfig $config,
     ) {
     }
 
-    public function isFeatureActive(UserInterface $user, string $featureKey): bool
+    /**
+     * visitorCode should be a uniq string that would be identified with a user before AND after creation
+     */
+    public function getFeatureVariationValue(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): KameleoonVariationKeyEnum
     {
-        $visitorCode = $this->getVisitorCode($user);
-        $cacheKey = md5($visitorCode) . '_feature_' . $featureKey;
-        $cacheItem = $this->cache->getItem($cacheKey);
-        if (!$cacheItem->isHit()) {
-            $cacheItem->set(
-                $this->client->isFeatureActive($visitorCode, $featureKey)
-            );
-            $cacheItem->expiresAt(CarbonImmutable::now()->addHours(self::CACHE_TTL_HOURS));
-
-            $this->cache->save($cacheItem);
-        }
-
-        return $cacheItem->get();
+        return KameleoonVariationKeyEnum::from($this->getVariation($visitorCode, $featureKey, $customDataset)->key);
     }
 
     /**
-     * @return string[]
+     * visitorCode should be a uniq string that would be identified with a user before AND after creation
      */
-    public function getActiveFeatureListForVisitor(UserInterface $user): array
+    public function isFeatureActive(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): bool
     {
-        $visitorCode = $this->getVisitorCode($user);
-        $cacheKey = md5($visitorCode) . '_active_features';
-        $cacheItem = $this->cache->getItem($cacheKey);
-        if (!$cacheItem->isHit()) {
-            $cacheItem->set(
-                array_keys($this->client->getActiveFeatures($this->getVisitorCode($user)))
-            );
-            $cacheItem->expiresAt(CarbonImmutable::now()->addHours(self::CACHE_TTL_HOURS));
-
-            $this->cache->save($cacheItem);
-        }
-
-        return $cacheItem->get();
+        return $this->getVariation($visitorCode, $featureKey, $customDataset)->isActive();
     }
 
-    public function getFeatureVariationKey(UserInterface $user, string $featureKey): string
+
+    /**
+     * @return array<string, Variation>
+     */
+    public function getActiveFeatures(string $visitorCode): array
     {
-        return $this->client->getFeatureVariationKey($this->getVisitorCode($user), $featureKey);
+        return $this->client->getVariations($visitorCode, true, false);
+    }
+
+    private function getVariation(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): Variation
+    {
+
+        if ($this->hasConsentAcceptedCookie()) {
+            $this->setLegalConsent($visitorCode, true);
+        }
+
+        $userAgent = $this->getUserAgent();
+        if ($userAgent) {
+            $this->client->addData($visitorCode, new UserAgent($userAgent));
+        }
+
+        if (null !== $customDataset) {
+            $this->addCustomDataSet($visitorCode, $customDataset);
+        }
+
+        return $this->client->getVariation($visitorCode, $featureKey);
     }
 
     /**
+     * a function to manually set the legal consent for a visitor
+     */
+    public function setLegalConsent(string $visitorCode, bool $consent): void
+    {
+        $this->client->setLegalConsent($visitorCode, $consent);
+    }
+
+    /**
+     * a function to track kameleoon goal with or without a custom data
+     * visitorCode should be a uniq string that would be identified with a user before AND after creation
+     */
+    public function trackGoal(string $visitorCode, int $goalId, ?KameleoonUserDataSet $customDataset = null): void
+    {
+        if (null !== $customDataset) {
+            $this->addCustomDataSet($visitorCode, $customDataset);
+        }
+
+        $this->client->trackConversion($visitorCode, $goalId);
+    }
+
+
+    /**
+     * a function to return all the feature flags keys
      * @return string[]
      */
-    public function getFeatureList(): array
+    public function getFeatureKeys(): array
     {
         return $this->client->getFeatureList();
     }
 
-    public function addData(UserInterface $user, KameleoonUserData $data): void
+    /**
+     * This function parses the loaded Kameleoon server config and takes experiments data
+     * @return KameleoonFeatureFlagData[]
+     * @throws \RuntimeException
+     */
+    public function getFeaturesData(): array
     {
-        $this->client->addData($this->getVisitorCode($user), new CustomData($data->id->value, (string)$data->value));
-        $this->client->flush($this->getVisitorCode($user));
+        return $this->getKameleoonFeaturesConfig();
     }
 
-    public function addDataSet(UserInterface $user, KameleoonUserDataSet $dataSet): void
+
+    public function addCustomData(string $visitorCode, KameleoonUserData $data): void
+    {
+        $this->client->addData($visitorCode, new CustomData($data->index, $data->value));
+        $this->client->flush($visitorCode);
+    }
+
+
+    public function addCustomDataSet(string $visitorCode, KameleoonUserDataSet $dataSet): void
     {
         foreach ($dataSet->getDataSet() as $data) {
             $this->client->addData(
-                $this->getVisitorCode($user),
-                new CustomData($data->id->value, (string)$data->value)
+                $visitorCode,
+                new CustomData($data->index, $data->value)
             );
         }
-        $this->client->flush($this->getVisitorCode($user));
+        $this->client->flush($visitorCode);
     }
 
-    private function getVisitorCode(UserInterface $user): string
+    /**
+     * @param ?string[] $referrers
+     */
+    public function addPageView(string $visitorCode, string $url, ?string $title, ?array $referrers = null): void
     {
-        return $this->client->getVisitorCode($user->getEmail());
+        $this->client->addData($visitorCode, new PageView($url, $title, $referrers));
+        $this->client->flush($visitorCode);
+    }
+
+    public function getVisitorCodeFromCookies(): ?string
+    {
+        return $this->client->getVisitorCode();
+    }
+
+    private function getUserAgent(): ?string
+    {
+        return $this->requestStack->getCurrentRequest()?->headers->get(self::USER_AGENT_HEADER_NAME);
+    }
+
+    private function hasConsentAcceptedCookie(): bool
+    {
+        $consentValue = $this->requestStack->getCurrentRequest()?->cookies->get(self::CONSENT_COOKIE_NAME);
+
+        if (!is_string($consentValue)) {
+            return false;
+        }
+
+        foreach (explode('&', $consentValue) as $param) {
+            if (str_starts_with($param, 'groups=') && str_contains($param, 'C0002:1')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return KameleoonFeatureFlagData[]
+     * @throws \RuntimeException
+     */
+    private function getKameleoonFeaturesConfig(): array
+    {
+        $config = $this->config->getConfig();
+        $siteCode = $this->config->getKameleoonSiteCode();
+        $workDir = $config->getKameleoonWorkDir();
+
+        $jsonFile = $workDir . KameleoonClientImpl::FILE_CONFIGURATION_NAME . $siteCode . ".json";
+
+        if (!file_exists($jsonFile)) {
+            throw new \RuntimeException("Kameleoon config file is not found: {$jsonFile}");
+        }
+
+        $jsonContent = file_get_contents($jsonFile);
+        if (false === $jsonContent) {
+            throw new \RuntimeException("Failed to read Kameleoon config file: {$jsonFile}");
+        }
+
+        $configData = json_decode($jsonContent, true);
+
+        if (null === $configData || !is_array($configData)) {
+            throw new \RuntimeException("Failed to parse Kameleoon config file: {$jsonFile}");
+        }
+
+        $featureFlags = $configData['featureFlags'] ?? [];
+
+        if (!is_array($featureFlags)) {
+            throw new \RuntimeException("Feature flags data is not an array in Kameleoon config file: {$jsonFile}");
+        }
+
+        return array_map(fn(array $item) =>
+            new KameleoonFeatureFlagData(
+                $item['id'],
+                $item['featureKey'],
+                $item['environmentEnabled'],
+            ), $featureFlags);
     }
 }

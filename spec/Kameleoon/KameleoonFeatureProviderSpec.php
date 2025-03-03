@@ -4,32 +4,43 @@ declare(strict_types=1);
 
 namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 
-use Carbon\CarbonImmutable;
 use Kameleoon\Data\CustomData;
+use Kameleoon\Data\UserAgent;
 use Kameleoon\KameleoonClient;
+use Kameleoon\KameleoonClientConfig;
 use Kameleoon\Types\Variation;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserData;
 use Lingoda\KameleoonBundle\DTO\KameleoonUserDataSet;
-use Lingoda\KameleoonBundle\Enum\KameleoonCustomDataEnum;
+use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonFeatureProvider;
-use Lingoda\KameleoonBundle\User\UserInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\HttpFoundation\HeaderBag;
+use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Webmozart\Assert\Assert;
 
 class KameleoonFeatureProviderSpec extends ObjectBehavior
 {
-    private const USER_EMAIL = 'user_test1@example.com';
     private const VISITOR_CODE = 'test_visitor_code';
 
-    public function let(KameleoonClient $client, UserInterface $user, CacheItemPoolInterface $cache)
+    public function let(KameleoonClient $client, RequestStack $requestStack, Request $request, Variation $variation, KameleoonConfig $config, KameleoonClientConfig $clientConfig)
     {
-        $user->getEmail()->willReturn(self::USER_EMAIL);
-        $client->getVisitorCode(self::USER_EMAIL)->willReturn(self::VISITOR_CODE);
 
-        $this->beConstructedWith($client, $cache);
+        $variation->isActive()->willReturn(true);
+        $variation->key = 'on';
+        $cookies = new InputBag();
+        $request->cookies = $cookies;
+        $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
+        $headers = new HeaderBag(['User-Agent' => $userAgent]);
+        $request->headers = $headers;
+        $requestStack->getCurrentRequest()->willReturn($request);
+
+        $clientConfig->getKameleoonWorkDir()->willReturn('work_dir');
+        $config->getConfig()->willReturn($clientConfig);
+        $config->getKameleoonSiteCode()->willReturn('site_code');
+        $this->beConstructedWith($client, $requestStack, $config);
     }
 
     public function it_is_initializable()
@@ -39,170 +50,73 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
 
     public function it_checks_if_feature_is_active(
         KameleoonClient $client,
-        UserInterface $user,
-        CacheItemPoolInterface $cache,
-        CacheItemInterface $cacheItem,
+        Variation $variation,
     ) {
         $featureKey = 'my_awesome_test_feature1';
-
-        $cache->getItem('396fb151b98052222fcb6823f237110b_feature_my_awesome_test_feature1')
-            ->willReturn($cacheItem)
-            ->shouldBeCalledOnce();
-        $cacheItem->isHit()->willReturn(false)->shouldBeCalledOnce();
-        $cacheItem->set(true)->willReturn($cacheItem)->shouldBeCalledOnce();
-        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->willReturn($cacheItem)->shouldBeCalledOnce();
-        $cache->save($cacheItem)->shouldBeCalledOnce();
-        $cacheItem->get()->willReturn(true)->shouldBeCalledOnce();
-
-        $client->isFeatureActive(self::VISITOR_CODE, $featureKey)->willReturn(true);
-
-        Assert::true($this->isFeatureActive($user, $featureKey)->getWrappedObject());
+        $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldBeCalled();
+        $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
+        $this->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
     }
 
-    public function it_checks_if_feature_is_active_from_cache(
+    public function it_sends_user_agent_on_feature_evaluation(
         KameleoonClient $client,
-        UserInterface $user,
-        CacheItemPoolInterface $cache,
-        CacheItemInterface $cacheItem,
+        RequestStack $requestStack,
+        Request $request,
+        Variation $variation,
     ) {
         $featureKey = 'my_awesome_test_feature1';
-
-        $cache->getItem('396fb151b98052222fcb6823f237110b_feature_my_awesome_test_feature1')
-            ->willReturn($cacheItem)
-            ->shouldBeCalledOnce();
-        $cacheItem->isHit()->willReturn(true)->shouldBeCalledOnce();
-        $cacheItem->set(true)->shouldNotBeCalled();
-        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->shouldNotBeCalled();
-        $cache->save($cacheItem)->shouldNotBeCalled();
-
-        $cacheItem->get()->willReturn(true)->shouldBeCalledOnce();
-
-        $client->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldNotBeCalled();
-
-        Assert::true($this->isFeatureActive($user, $featureKey)->getWrappedObject());
+        $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
+        $this->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
+        $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldHaveBeenCalled();
+    }
+    
+    public function it_sends_custom_data_on_feature_evaluation(
+        KameleoonClient $client,
+        Variation $variation,
+    ) {
+        $featureKey = 'my_awesome_test_feature1';
+        $dataSet = new KameleoonUserDataSet();
+        $data = new KameleoonUserData(3, 'true');
+        $data2 = new KameleoonUserData(1, 'German');
+        $dataSet->addData($data);
+        $dataSet->addData($data2);
+        
+        $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
+        $this->isFeatureActive(self::VISITOR_CODE, $featureKey, $dataSet)->shouldReturn(true);
+        $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldHaveBeenCalled();
+        $client->addData(self::VISITOR_CODE, Argument::type(CustomData::class))->shouldHaveBeenCalled();
+        $client->flush(self::VISITOR_CODE)->shouldHaveBeenCalled();
     }
 
-    public function it_returns_active_feature_list(
+    public function it_returns_active_features_list(
         KameleoonClient $client,
-        UserInterface $user,
-        CacheItemPoolInterface $cache,
-        CacheItemInterface $cacheItem,
     ) {
         $featureList = [
             'my_awesome_test_feature1' => new Variation('on', null, null, []),
             'my_awesome_test_feature2' => new Variation('on', null, null, []),
         ];
 
-        $cache->getItem('396fb151b98052222fcb6823f237110b_active_features')
-            ->willReturn($cacheItem)
-            ->shouldBeCalledOnce();
-        $cacheItem->isHit()->willReturn(false)->shouldBeCalledOnce();
-        $cacheItem->set(array_keys($featureList))->willReturn($cacheItem)->shouldBeCalledOnce();
-        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->willReturn($cacheItem)->shouldBeCalledOnce();
-        $cache->save($cacheItem)->shouldBeCalledOnce();
-        $cacheItem->get()->willReturn(array_keys($featureList))->shouldBeCalledOnce();
-
-        $client->getActiveFeatures(self::VISITOR_CODE)->willReturn($featureList);
-
-        Assert::eq(
-            array_keys($featureList),
-            $this->getActiveFeatureListForVisitor($user)->getWrappedObject()
-        );
-    }
-
-    public function it_returns_active_feature_list_from_cache(
-        KameleoonClient $client,
-        UserInterface $user,
-        CacheItemPoolInterface $cache,
-        CacheItemInterface $cacheItem,
-    ) {
-        $featureList = [
-            'my_awesome_test_feature1',
-            'my_awesome_test_feature2',
-        ];
-
-        $cache->getItem('396fb151b98052222fcb6823f237110b_active_features')
-            ->willReturn($cacheItem)
-            ->shouldBeCalledOnce();
-        $cacheItem->isHit()->willReturn(true)->shouldBeCalledOnce();
-        $cacheItem->set($featureList)->shouldNotBeCalled();
-        $cacheItem->expiresAt(Argument::type(CarbonImmutable::class))->shouldNotBeCalled();
-        $cache->save($cacheItem)->shouldNotBeCalled();
-
-        $cacheItem->get()->willReturn($featureList)->shouldBeCalledOnce();
-
-        $client->getActiveFeatures(self::VISITOR_CODE)->shouldNotBeCalled();
+        $client->getVariations(self::VISITOR_CODE, true, false)->willReturn($featureList);
 
         Assert::eq(
             $featureList,
-            $this->getActiveFeatureListForVisitor($user)->getWrappedObject()
+            $this->getActiveFeatures(self::VISITOR_CODE)->getWrappedObject()
         );
     }
 
-    public function it_returns_feature_variation_key(KameleoonClient $client, UserInterface $user)
-    {
-        $featureKey = 'my_awesome_test_feature1';
-        $featureKeyVariation = 'my_awesome_test_feature1_variation1';
-        $client->getFeatureVariationKey(self::VISITOR_CODE, $featureKey)->willReturn($featureKeyVariation);
 
-        Assert::eq(
-            $featureKeyVariation,
-            $this->getFeatureVariationKey($user, $featureKey)->getWrappedObject()
-        );
-    }
-
-    public function it_returns_full_feature_list(KameleoonClient $client)
+    public function it_adds_data_for_user(KameleoonClient $client)
     {
-        $featureList = [
-            'my_awesome_test_feature1',
-            'my_awesome_test_feature2',
-        ];
-        $client->getFeatureList()->willReturn($featureList);
-        Assert::eq(
-            $featureList,
-            $this->getFeatureList()->getWrappedObject()
-        );
-    }
-
-    public function it_adds_data_for_user(KameleoonClient $client, UserInterface $user)
-    {
-        $data = new KameleoonUserData(KameleoonCustomDataEnum::IS_LONGOODIE, true);
+        $data = new KameleoonUserData(3, 'true');
 
         $client->addData(
             self::VISITOR_CODE,
             Argument::that(
-                fn (CustomData $d) => $d->getId() === 0 && count($d->getValues()) === 1 && $d->getValues()[0] == true
-            )
+                fn(CustomData $d) => $d->getId() === $data->index && $d->getValues()[0] === $data->value
+            ),
         )->shouldBeCalledOnce();
         $client->flush(self::VISITOR_CODE)->shouldBeCalledOnce();
 
-        $this->addData($user, $data);
-    }
-
-    public function it_adds_data_set_for_user(KameleoonClient $client, UserInterface $user)
-    {
-        $item1 = new KameleoonUserData(KameleoonCustomDataEnum::IS_STUDENT, true);
-        $item2 = new KameleoonUserData(KameleoonCustomDataEnum::SECTION, 'German');
-        $dataSet = (new KameleoonUserDataSet())
-            ->addData($item1)
-            ->addData($item2)
-        ;
-
-        $client->addData(
-            self::VISITOR_CODE,
-            Argument::that(
-                fn (CustomData $d) => $d->getId() === 9 && count($d->getValues()) === 1 && $d->getValues()[0] == true
-            )
-        )->shouldBeCalled();
-        $client->addData(
-            self::VISITOR_CODE,
-            Argument::that(
-                fn (CustomData $d) => $d->getId() === 1 && count($d->getValues()) === 1 && $d->getValues()[0] == 'German'
-            )
-        )->shouldBeCalled();
-
-        $client->flush(self::VISITOR_CODE)->shouldBeCalledOnce();
-
-        $this->addDataSet($user, $dataSet);
+        $this->addCustomData(self::VISITOR_CODE, $data);
     }
 }
