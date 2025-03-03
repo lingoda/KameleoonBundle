@@ -53,7 +53,6 @@ class KameleoonFeatureProvider
         return $this->client->getVariations($visitorCode, true, false);
     }
 
-
     private function getVariation(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): Variation
     {
 
@@ -81,6 +80,10 @@ class KameleoonFeatureProvider
         $this->client->setLegalConsent($visitorCode, $consent);
     }
 
+    /**
+     * a function to track kameleoon goal with or without a custom data
+     * visitorCode should be a uniq string that would be identified with a user before AND after creation
+     */
     public function trackGoal(string $visitorCode, int $goalId, ?KameleoonUserDataSet $customDataset = null): void
     {
         if (null !== $customDataset) {
@@ -92,6 +95,7 @@ class KameleoonFeatureProvider
 
 
     /**
+     * a function to return all the feature flags keys
      * @return string[]
      */
     public function getFeatureKeys(): array
@@ -100,8 +104,9 @@ class KameleoonFeatureProvider
     }
 
     /**
-     * This functions parses loaded KameleoonData and takes experiments data
+     * This function parses the loaded Kameleoon server config and takes experiments data
      * @return KameleoonFeatureFlagData[]
+     * @throws \RuntimeException
      */
     public function getFeaturesData(): array
     {
@@ -164,6 +169,7 @@ class KameleoonFeatureProvider
 
     /**
      * @return KameleoonFeatureFlagData[]
+     * @throws \RuntimeException
      */
     private function getKameleoonFeaturesConfig(): array
     {
@@ -178,9 +184,21 @@ class KameleoonFeatureProvider
         }
 
         $jsonContent = file_get_contents($jsonFile);
+        if (false === $jsonContent) {
+            throw new \RuntimeException("Failed to read Kameleoon config file: {$jsonFile}");
+        }
+
         $configData = json_decode($jsonContent, true);
 
+        if (null === $configData || !is_array($configData)) {
+            throw new \RuntimeException("Failed to parse Kameleoon config file: {$jsonFile}");
+        }
+
         $featureFlags = $configData['featureFlags'] ?? [];
+
+        if (!is_array($featureFlags)) {
+            throw new \RuntimeException("Feature flags data is not an array in Kameleoon config file: {$jsonFile}");
+        }
 
         return array_map(fn(array $item) =>
             new KameleoonFeatureFlagData(
