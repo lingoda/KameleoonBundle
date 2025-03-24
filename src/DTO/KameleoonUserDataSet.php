@@ -7,7 +7,7 @@ namespace Lingoda\KameleoonBundle\DTO;
 class KameleoonUserDataSet
 {
     /** @var KameleoonUserData[] */
-    private array $dataSet;
+    private array $dataSet = [];
 
     public function addData(KameleoonUserData $data): self
     {

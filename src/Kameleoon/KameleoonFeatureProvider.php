@@ -39,9 +39,11 @@ class KameleoonFeatureProvider
     /**
      * visitorCode should be a uniq string that would be identified with a user before AND after creation
      */
-    public function isFeatureActive(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): bool
+    public function isFeatureVariant(string $visitorCode, string $featureKey, ?KameleoonUserDataSet $customDataset = null): bool
     {
-        return $this->getVariation($visitorCode, $featureKey, $customDataset)->isActive();
+        $variationValue = KameleoonVariationKeyEnum::from($this->getVariation($visitorCode, $featureKey, $customDataset)->key);
+
+        return KameleoonVariationKeyEnum::isVariant($variationValue);
     }
 
 
@@ -67,6 +69,12 @@ class KameleoonFeatureProvider
 
         if (null !== $customDataset) {
             $this->addCustomDataSet($visitorCode, $customDataset);
+        }
+
+        $currentRequest = $this->requestStack->getCurrentRequest();
+        if (null !== $currentRequest) {
+            $url = $currentRequest->headers->get('referer') ?? $currentRequest->getUri();
+            $this->addPageView($visitorCode, $url, 'No title, server request');
         }
 
         return $this->client->getVariation($visitorCode, $featureKey);
@@ -135,13 +143,13 @@ class KameleoonFeatureProvider
     /**
      * @param ?string[] $referrers
      */
-    public function addPageView(string $visitorCode, string $url, ?string $title, ?array $referrers = null): void
+    private function addPageView(string $visitorCode, string $url, ?string $title, ?array $referrers = null): void
     {
         $this->client->addData($visitorCode, new PageView($url, $title, $referrers));
         $this->client->flush($visitorCode);
     }
 
-    public function getVisitorCodeFromCookies(): ?string
+    public function getVisitorCodeFromCookies(): string
     {
         return $this->client->getVisitorCode();
     }
