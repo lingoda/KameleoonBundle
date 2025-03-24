@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace spec\Lingoda\KameleoonBundle\Kameleoon;
 
 use Kameleoon\Data\CustomData;
+use Kameleoon\Data\PageView;
 use Kameleoon\Data\UserAgent;
 use Kameleoon\KameleoonClient;
 use Kameleoon\KameleoonClientConfig;
@@ -33,8 +34,9 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
         $cookies = new InputBag();
         $request->cookies = $cookies;
         $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
-        $headers = new HeaderBag(['User-Agent' => $userAgent]);
+        $headers = new HeaderBag(['User-Agent' => $userAgent, 'referer' => 'https://www.example.com']);
         $request->headers = $headers;
+        $request->getUri()->willReturn('https://www.example.com');
         $requestStack->getCurrentRequest()->willReturn($request);
 
         $clientConfig->getKameleoonWorkDir()->willReturn('work_dir');
@@ -54,8 +56,10 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
     ) {
         $featureKey = 'my_awesome_test_feature1';
         $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldBeCalled();
+        $client->addData(self::VISITOR_CODE, Argument::type(PageView::class))->shouldBeCalled();
+        $client->flush(self::VISITOR_CODE)->shouldBeCalled();
         $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
-        $this->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
+        $this->isFeatureVariant(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
     }
 
     public function it_sends_user_agent_on_feature_evaluation(
@@ -66,7 +70,9 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
     ) {
         $featureKey = 'my_awesome_test_feature1';
         $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
-        $this->isFeatureActive(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
+        $client->addData(self::VISITOR_CODE, Argument::type(PageView::class))->shouldBeCalled();
+        $client->flush(self::VISITOR_CODE)->shouldBeCalled();
+        $this->isFeatureVariant(self::VISITOR_CODE, $featureKey)->shouldReturn(true);
         $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldHaveBeenCalled();
     }
     
@@ -80,9 +86,10 @@ class KameleoonFeatureProviderSpec extends ObjectBehavior
         $data2 = new KameleoonUserData(1, 'German');
         $dataSet->addData($data);
         $dataSet->addData($data2);
-        
+        $client->addData(self::VISITOR_CODE, Argument::type(PageView::class))->shouldBeCalled();
+        $client->flush(self::VISITOR_CODE)->shouldBeCalled();
         $client->getVariation(self::VISITOR_CODE, $featureKey)->willReturn($variation);
-        $this->isFeatureActive(self::VISITOR_CODE, $featureKey, $dataSet)->shouldReturn(true);
+        $this->isFeatureVariant(self::VISITOR_CODE, $featureKey, $dataSet)->shouldReturn(true);
         $client->addData(self::VISITOR_CODE, Argument::type(UserAgent::class))->shouldHaveBeenCalled();
         $client->addData(self::VISITOR_CODE, Argument::type(CustomData::class))->shouldHaveBeenCalled();
         $client->flush(self::VISITOR_CODE)->shouldHaveBeenCalled();
