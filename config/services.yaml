@@ -5,12 +5,16 @@ services:
   Lingoda\KameleoonBundle\Kameleoon\:
     resource: '../src/Kameleoon/*'
 
-  Kameleoon\KameleoonClientFactory:
-    class: Kameleoon\KameleoonClientFactory
+  Kameleoon\KameleoonClientFactory: ~
+  Lingoda\KameleoonBundle\Kameleoon\KameleoonClientFactoryWrapper: ~
 
   Kameleoon\KameleoonClient:
-    class: Kameleoon\KameleoonClient
-    factory: [ '@Kameleoon\KameleoonClientFactory', createWithConfig ]
+    factory: [ '@Lingoda\KameleoonBundle\Kameleoon\KameleoonClientFactoryWrapper', createWithConfig ]
     arguments:
-      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getKameleoonSiteCode()'
-      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getConfig()'
+      $config: '@Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig'
+
+  Lingoda\KameleoonBundle\Cache\KameleoonCacheWarmer:
+    arguments:
+      $config: '@Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig'
+    tags: [ cache.warmer ]
+
