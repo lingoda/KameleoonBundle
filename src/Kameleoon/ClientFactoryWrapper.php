@@ -7,7 +7,7 @@ namespace Lingoda\KameleoonBundle\Kameleoon;
 use Kameleoon\KameleoonClient;
 use Kameleoon\KameleoonClientFactory as KameleoonSDKClientFactory;
 
-class KameleoonClientFactoryWrapper
+class ClientFactoryWrapper
 {
     public static function createWithConfig(KameleoonConfig $config): KameleoonClient
     {

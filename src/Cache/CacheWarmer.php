@@ -7,7 +7,7 @@ namespace Lingoda\KameleoonBundle\Cache;
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
-class KameleoonCacheWarmer implements CacheWarmerInterface
+class CacheWarmer implements CacheWarmerInterface
 {
     public function __construct(
         private readonly KameleoonConfig $config

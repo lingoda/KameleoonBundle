@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Lingoda\KameleoonBundle;
 
-use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -43,19 +42,13 @@ class KameleoonBundle extends AbstractBundle
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $container->import('../config/services.yaml');
+        foreach ($config as $key => $value) {
+            $builder->setParameter(
+                sprintf('%s.%s', $this->extensionAlias, $key),
+                $value
+            );
+        }
 
-        $container->services()
-            ->get(KameleoonConfig::class)
-            ->arg(0, $config['environment'])
-            ->arg(1, $config['client_id'])
-            ->arg(2, $config['client_secret'])
-            ->arg(3, $config['site_code'])
-            ->arg(4, $config['debug_mode'])
-            ->arg(5, $config['work_dir'])
-            ->arg(6, $config['refresh_interval_minute'])
-            ->arg(7, $config['default_timeout_millisecond'])
-            ->arg(8, $config['cookie_options'])
-        ;
+        $container->import('../config/services.yaml');
     }
 }
