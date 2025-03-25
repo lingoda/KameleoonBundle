@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Lingoda\KameleoonBundle\Cache;
 
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
