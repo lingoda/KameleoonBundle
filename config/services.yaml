@@ -5,12 +5,24 @@ services:
   Lingoda\KameleoonBundle\Kameleoon\:
     resource: '../src/Kameleoon/*'
 
-  Kameleoon\KameleoonClientFactory:
-    class: Kameleoon\KameleoonClientFactory
+
+  Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig:
+    arguments:
+      $environment: '%lingoda_kameleoon.environment%'
+      $kameleoonClientId: '%lingoda_kameleoon.client_id%'
+      $kameleoonClientSecret: '%lingoda_kameleoon.client_secret%'
+      $kameleoonSiteCode: '%lingoda_kameleoon.site_code%'
+      $kameleoonDebugMode: '%lingoda_kameleoon.debug_mode%'
+      $kameleoonWorkDir: '%lingoda_kameleoon.work_dir%'
+      $kameleoonRefreshInterval: '%lingoda_kameleoon.refresh_interval_minute%'
+      $kameleoonDefaultTimeout: '%lingoda_kameleoon.default_timeout_millisecond%'
+      $kameleoonCookieOptions: '%lingoda_kameleoon.cookie_options%'
 
   Kameleoon\KameleoonClient:
-    class: Kameleoon\KameleoonClient
-    factory: [ '@Kameleoon\KameleoonClientFactory', createWithConfig ]
-    arguments:
-      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getKameleoonSiteCode()'
-      - '@=service("Lingoda\\KameleoonBundle\\Kameleoon\\KameleoonConfig").getConfig()'
+    factory: [ '@Lingoda\KameleoonBundle\Kameleoon\ClientFactoryWrapper', createWithConfig ]
+
+  Lingoda\KameleoonBundle\Cache\CacheWarmer:
+    tags: [ kernel.cache_warmer ]
+
+  Lingoda\KameleoonBundle\Cache\CacheClearer:
+    tags: [ kernel.cache_clearer ]
