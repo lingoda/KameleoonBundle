@@ -47,6 +47,7 @@ class KameleoonConfig
         return $this->kameleoonSiteCode;
     }
 
+    /* @phpstan-ignore-next-line */
     private function getCookieOptions(): CookieOptions
     {
         return KameleoonClientConfig::createCookieOptions(
