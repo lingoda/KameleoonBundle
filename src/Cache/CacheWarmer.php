@@ -23,6 +23,7 @@ class CacheWarmer implements CacheWarmerInterface
     public function warmUp(string $cacheDir): array
     {
         $this->warmUpWorkingDir();
+        $this->warmUpConfigFile();
 
         return [];
     }
@@ -31,6 +32,14 @@ class CacheWarmer implements CacheWarmerInterface
     {
         if (!is_dir($this->config->getConfig()->getKameleoonWorkDir())) {
             @mkdir($this->config->getConfig()->getKameleoonWorkDir(), 0777, true);
+        }
+    }
+
+    private function warmUpConfigFile(): void
+    {
+        if (!file_exists($this->config->getConfigurationFilePath())) {
+            file_put_contents($this->config->getConfigurationFilePath(), json_encode([]));
+            chmod($this->config->getConfigurationFilePath(), 0777);
         }
     }
 }

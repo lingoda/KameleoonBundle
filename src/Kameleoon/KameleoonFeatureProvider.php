@@ -181,11 +181,7 @@ class KameleoonFeatureProvider
      */
     private function getKameleoonFeaturesConfig(): array
     {
-        $config = $this->config->getConfig();
-        $siteCode = $this->config->getKameleoonSiteCode();
-        $workDir = $config->getKameleoonWorkDir();
-
-        $jsonFile = $workDir . KameleoonClientImpl::FILE_CONFIGURATION_NAME . $siteCode . ".json";
+        $jsonFile = $this->config->getConfigurationFilePath();
 
         if (!file_exists($jsonFile)) {
             throw new \RuntimeException("Kameleoon config file is not found: {$jsonFile}");

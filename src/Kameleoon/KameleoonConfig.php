@@ -7,6 +7,7 @@ namespace Lingoda\KameleoonBundle\Kameleoon;
 use JsonException;
 use Kameleoon\CookieOptions;
 use Kameleoon\KameleoonClientConfig;
+use Kameleoon\KameleoonClientImpl;
 
 class KameleoonConfig
 {
@@ -53,6 +54,16 @@ class KameleoonConfig
             $this->kameleoonCookieOptions['secure'],
             $this->kameleoonCookieOptions['http_only'],
             $this->kameleoonCookieOptions['same_site'],
+        );
+    }
+
+    public function getConfigurationFilePath(): string
+    {
+        return sprintf(
+            '%s/%s%s.json',
+            $this->kameleoonWorkDir,
+            KameleoonClientImpl::FILE_CONFIGURATION_NAME,
+            $this->kameleoonSiteCode
         );
     }
 }
