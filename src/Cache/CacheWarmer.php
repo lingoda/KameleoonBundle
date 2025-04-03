@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Lingoda\KameleoonBundle\Cache;
 
+use Kameleoon\KameleoonClient;
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 class CacheWarmer implements CacheWarmerInterface
 {
     public function __construct(
-        private readonly KameleoonConfig $config
+        private readonly KameleoonConfig $config,
+        private readonly KameleoonClient $client,
     )
     {
     }
@@ -37,9 +39,18 @@ class CacheWarmer implements CacheWarmerInterface
 
     private function warmUpConfigFile(): void
     {
-        if (!file_exists($this->config->getConfigurationFilePath())) {
-            file_put_contents($this->config->getConfigurationFilePath(), json_encode([]));
-            chmod($this->config->getConfigurationFilePath(), 0777);
+        $this->client->getFeatureList();
+
+        $files = scandir($this->config->getConfig()->getKameleoonWorkDir());
+
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') continue;
+
+            $path = sprintf('%s/%s', $this->config->getConfig()->getKameleoonWorkDir(), $file);
+
+            if (is_file($path)) {
+                chmod($path, 0777);
+            }
         }
     }
 }
