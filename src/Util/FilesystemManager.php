@@ -31,7 +31,7 @@ final class FilesystemManager
         rmdir($dir);
     }
 
-    public function changeDirPermissions(string $dir, int $permissions): void
+    public function changeDirPermissions(string $dir, int $permissions = 0755): void
     {
         $content = scandir($dir);
 
