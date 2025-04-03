@@ -36,9 +36,7 @@ class CacheWarmer implements CacheWarmerInterface
 
     private function warmUpWorkingDir(): void
     {
-        if (!is_dir($this->config->getConfig()->getKameleoonWorkDir())) {
-            @mkdir($this->config->getConfig()->getKameleoonWorkDir(), 0777, true);
-        }
+        $this->filesystem->createDir($this->config->getConfig()->getKameleoonWorkDir(), 0777);
     }
 
     private function warmUpConfigFile(): void

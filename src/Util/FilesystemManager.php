@@ -6,6 +6,13 @@ namespace Lingoda\KameleoonBundle\Util;
 
 final class FilesystemManager
 {
+    public function createDir(string $path, int $permissions = 0755): void
+    {
+        if (!is_dir($path)) {
+            @mkdir($path, $permissions, true);
+        }
+    }
+
     public function deleteDir(string $dir): void
     {
         $content = scandir($dir);
