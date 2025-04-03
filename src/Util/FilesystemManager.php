@@ -34,11 +34,18 @@ final class FilesystemManager
                     continue;
                 }
 
-                if (is_dir($item)) {
-                    chmod($item, $permissions);
-                    $this->changeDirPermissions($item, $permissions);
-                } elseif (is_file($item)) {
-                    chmod($item, $permissions);
+                $path = sprintf(
+                    '%s%s%s',
+                    $dir,
+                    str_ends_with($dir, DIRECTORY_SEPARATOR) ? '' : DIRECTORY_SEPARATOR,
+                    $item
+                );
+
+                if (is_dir($path)) {
+                    chmod($path, $permissions);
+                    $this->changeDirPermissions($path, $permissions);
+                } elseif (is_file($path)) {
+                    chmod($path, $permissions);
                 }
             }
         }
