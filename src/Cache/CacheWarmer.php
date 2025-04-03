@@ -6,15 +6,19 @@ namespace Lingoda\KameleoonBundle\Cache;
 
 use Kameleoon\KameleoonClient;
 use Lingoda\KameleoonBundle\Kameleoon\KameleoonConfig;
+use Lingoda\KameleoonBundle\Util\FilesystemManager;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 class CacheWarmer implements CacheWarmerInterface
 {
+    private FilesystemManager $filesystem;
+
     public function __construct(
         private readonly KameleoonConfig $config,
         private readonly KameleoonClient $client,
     )
     {
+        $this->filesystem = new FilesystemManager();
     }
 
     public function isOptional(): bool
@@ -40,17 +44,9 @@ class CacheWarmer implements CacheWarmerInterface
     private function warmUpConfigFile(): void
     {
         $this->client->getFeatureList();
-
-        $files = scandir($this->config->getConfig()->getKameleoonWorkDir());
-
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..') continue;
-
-            $path = sprintf('%s/%s', $this->config->getConfig()->getKameleoonWorkDir(), $file);
-
-            if (is_file($path)) {
-                chmod($path, 0777);
-            }
-        }
+        $this->filesystem->changeDirPermissions(
+            $this->config->getConfig()->getKameleoonWorkDir(),
+            0777,
+        );
     }
 }
