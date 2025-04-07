@@ -11,6 +11,10 @@ use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 class CacheWarmer implements CacheWarmerInterface
 {
+    private const DEFAULTS = [
+        'tmp_test'
+    ];
+
     private FilesystemManager $filesystem;
 
     public function __construct(
@@ -29,7 +33,10 @@ class CacheWarmer implements CacheWarmerInterface
     public function warmUp(string $cacheDir): array
     {
         $this->warmUpWorkingDir();
-        $this->warmUpConfigFile();
+
+        if (!in_array($this->config->getConfig()->getClientId(), self::DEFAULTS, true)) {
+            $this->warmUpConfigFile();
+        }
 
         return [];
     }
