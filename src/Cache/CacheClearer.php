@@ -19,7 +19,7 @@ class CacheClearer implements CacheClearerInterface
         $this->filesystem = new FilesystemManager();
     }
 
-    public function clear(string $cacheDir)
+    public function clear(string $cacheDir): void
     {
         $this->deleteWorkingDir();
     }
